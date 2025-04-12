@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #121212;
+            color: #f0f0f0;
+            line-height: 1.6;
+        }
+        
+        header {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        nav {
+            background-color: #1e1e1e;
+            padding: 0.5rem;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+        }
+        
+        nav ul li {
+            margin: 0 1rem;
+        }
+        
+        nav ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        nav ul li a:hover {
+            background-color: #333333;
+        }
+        
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #1e1e1e;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+        
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        h1, h2, h3 {
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+        
+        .links-section {
+            margin-bottom: 2rem;
+        }
+        
+        .links-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .links-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .links-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .link-card {
+            border: 1px solid #333333;
+            padding: 1rem;
+            border-radius: 4px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            background-color: #2a2a2a;
+        }
+        
+        .link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        
+        .link-card h3 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .link-card a {
+            color: #4da6ff;
+            text-decoration: none;
+        }
+        
+        .link-card a:hover {
+            text-decoration: underline;
+        }
+        
+        footer {
+            background-color: #000000;
+            color: #ffffff;
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .add-link-form {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            border: 1px solid #333333;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            border: 1px solid #444444;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #4da6ff;
+            color: #000000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #3a8ad6;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>My Website</h1>
+    </header>
+    
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#links">Links</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+    
+    <main>
+        <section id="home" class="section">
+            <h2>Welcome to My Website</h2>
+            <p>This is a simple website template that allows you to organize and share your favorite links.</p>
+        </section>
+        
+        <section id="about" class="section">
+            <h2>About This Site</h2>
+            <p>This website was created to collect and organize important links in one place. Feel free to explore the existing links or add your own!</p>
+        </section>
+        
+        <section id="links" class="links-section">
+            <h2>My Links</h2>
+            
+            <div class="add-link-form">
+                <h3>Add a New Link</h3>
+                <form id="linkForm">
+                    <div class="form-group">
+                        <label for="linkTitle">Title:</label>
+                        <input type="text" id="linkTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="linkUrl">URL:</label>
+                        <input type="url" id="linkUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="linkDescription">Description:</label>
+                        <textarea id="linkDescription" rows="3"></textarea>
+                    </div>
+                    <button type="submit">Add Link</button>
+                </form>
+            </div>
+            
+            <div class="links-container" id="linksContainer">
+                <!-- Sample links - these will be dynamically added/modified by JavaScript -->
+                <div class="link-card">
+                    <h3>Google</h3>
+                    <a href="https://www.google.com" target="_blank">Visit Google</a>
+                    <p>The world's most popular search engine.</p>
+                </div>
+                <div class="link-card">
+                    <h3>Wikipedia</h3>
+                    <a href="https://www.wikipedia.org" target="_blank">Visit Wikipedia</a>
+                    <p>The free encyclopedia that anyone can edit.</p>
+                </div>
+                <div class="link-card">
+                    <h3>YouTube</h3>
+                    <a href="https://www.youtube.com" target="_blank">Visit YouTube</a>
+                    <p>Video sharing platform where users can upload, view, and share videos.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="contact" class="section">
+            <h2>Contact</h2>
+            <p>You can reach out to me at: example@email.com</p>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 My Website. All rights reserved.</p>
+    </footer>
+    
+    <script>
+        // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to the form and links container
+            const linkForm = document.getElementById('linkForm');
+            const linksContainer = document.getElementById('linksContainer');
+            
+            // Load links from localStorage if available
+            loadLinks();
+            
+            // Add event listener for form submission
+            linkForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const title = document.getElementById('linkTitle').value;
+                const url = document.getElementById('linkUrl').value;
+                const description = document.getElementById('linkDescription').value;
+                
+                // Add the new link
+                addLink(title, url, description);
+                
+                // Reset the form
+                linkForm.reset();
+            });
+            
+            // Function to add a new link
+            function addLink(title, url, description) {
+                // Create a new link card
+                const linkCard = document.createElement('div');
+                linkCard.className = 'link-card';
+                
+                // Create link card content
+                const linkTitle = document.createElement('h3');
+                linkTitle.textContent = title;
+                
+                const linkUrl = document.createElement('a');
+                linkUrl.href = url;
+                linkUrl.target = '_blank';
+                linkUrl.textContent = 'Visit ' + title;
+                
+                const linkDesc = document.createElement('p');
+                linkDesc.textContent = description;
+                
+                // Add a delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.style.backgroundColor = '#ff4d4d';
+                deleteBtn.style.marginTop = '0.5rem';
+                deleteBtn.addEventListener('click', function() {
+                    // Remove the link card
+                    linkCard.remove();
+                    // Update localStorage
+                    saveLinks();
+                });
+                
+                // Append elements to the link card
+                linkCard.appendChild(linkTitle);
+                linkCard.appendChild(linkUrl);
+                linkCard.appendChild(linkDesc);
+                linkCard.appendChild(deleteBtn);
+                
+                // Add the link card to the container
+                linksContainer.appendChild(linkCard);
+                
+                // Save to localStorage
+                saveLinks();
+            }
+            
+            // Function to save links to localStorage
+            function saveLinks() {
+                const links = [];
+                
+                // Get all link cards
+                const linkCards = document.querySelectorAll('.link-card');
+                
+                // Extract data from each link card
+                linkCards.forEach(function(card) {
+                    const title = card.querySelector('h3').textContent;
+                    const url = card.querySelector('a').href;
+                    const description = card.querySelector('p').textContent;
+                    
+                    links.push({
+                        title: title,
+                        url: url,
+                        description: description
+                    });
+                });
+                
+                // Save to localStorage
+                localStorage.setItem('myLinks', JSON.stringify(links));
+            }
+            
+            // Function to load links from localStorage
+            function loadLinks() {
+                // Get links from localStorage
+                const savedLinks = localStorage.getItem('myLinks');
+                
+                if (savedLinks) {
+                    // Parse the JSON string
+                    const links = JSON.parse(savedLinks);
+                    
+                    // Clear existing links
+                    linksContainer.innerHTML = '';
+                    
+                    // Add each link
+                    links.forEach(function(link) {
+                        addLink(link.title, link.url, link.description);
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
