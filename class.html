@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Classroom Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+            <i class="fas fa-book-open text-6xl text-blue-600 mb-6"></i>
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Classroom Tracker</h1>
+            <p class="text-gray-600 mb-6">Sign in with your Google account to automatically sync your Google Classroom assignments</p>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-left">
+                <h3 class="font-semibold text-yellow-800 mb-2">⚠️ Setup Required</h3>
+                <p class="text-yellow-700 text-sm">
+                    To connect to Google Classroom, you need to set up Google API credentials. 
+                    See the setup instructions below.
+                </p>
+            </div>
+            
+            <button onclick="signIn()" id="signInBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg flex items-center space-x-3 mx-auto transition-colors">
+                <i class="fas fa-user"></i>
+                <span>Sign in with Google</span>
+            </button>
+            
+            <div id="loginError" class="text-red-600 mt-4 text-sm hidden"></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden p-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-book-open text-3xl text-blue-600"></i>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">Classroom Tracker</h1>
+                            <p class="text-gray-600">Welcome, <span id="userName">Student</span>!</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="fetchAssignments()" id="refreshBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                        <button onclick="signOut()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-clock text-3xl text-orange-500"></i>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="incompleteCount">0</p>
+                            <p class="text-gray-600">Incomplete</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="completeCount">0</p>
+                            <p class="text-gray-600">Complete</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-calendar text-3xl text-blue-500"></i>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="totalCount">0</p>
+                            <p class="text-gray-600">Total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingDiv" class="bg-white rounded-2xl shadow-xl p-6 mb-6 text-center hidden">
+                <i class="fas fa-sync-alt text-3xl text-blue-600 animate-spin mb-4"></i>
+                <p class="text-gray-600">Loading assignments from Google Classroom...</p>
+            </div>
+
+            <!-- Error -->
+            <div id="errorDiv" class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6 hidden">
+                <p class="text-red-700" id="errorText"></p>
+            </div>
+
+            <!-- Add Assignment Form -->
+            <div id="addForm" class="bg-white rounded-2xl shadow-xl p-6 mb-6 hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Add New Assignment</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="newTitle" placeholder="Assignment Title" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <input type="text" id="newCourse" placeholder="Course Name" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <input type="date" id="newDueDate" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <input type="url" id="newLink" placeholder="Classroom Link" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <textarea id="newDescription" placeholder="Description (optional)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" rows="3"></textarea>
+                </div>
+                <div class="mt-4 flex space-x-3">
+                    <button onclick="addAssignment()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">Add Assignment</button>
+                    <button onclick="hideAddForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Incomplete Assignments -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center space-x-2">
+                        <i class="fas fa-clock text-orange-500"></i>
+                        <span>Incomplete Assignments (<span id="incompleteHeader">0</span>)</span>
+                    </h2>
+                    <button onclick="showAddForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Assignment</span>
+                    </button>
+                </div>
+                <div id="incompleteList"></div>
+            </div>
+
+            <!-- Completed Assignments -->
+            <div id="completedSection" class="bg-white rounded-2xl shadow-xl p-6 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    <span>Completed Assignments (<span id="completedHeader">0</span>)</span>
+                </h2>
+                <div id="completedList"></div>
+            </div>
+
+            <!-- Setup Instructions -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mt-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Setup Instructions</h2>
+                <div class="space-y-4 text-sm text-gray-700">
+                    <div>
+                        <h3 class="font-semibold mb-2">1. Create Google Cloud Project</h3>
+                        <p>Go to <a href="https://console.cloud.google.com" class="text-blue-600 hover:underline">Google Cloud Console</a> and create a new project.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">2. Enable APIs</h3>
+                        <p>Enable the Google Classroom API in your project's API library.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">3. Create Credentials</h3>
+                        <p>Create OAuth 2.0 client credentials and get your Client ID and API Key.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">4. Update Code</h3>
+                        <p>Replace CLIENT_ID and API_KEY in the JavaScript section with your actual credentials.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">5. Host the File</h3>
+                        <p>Serve this HTML file from a web server (not file:// protocol) for Google Auth to work.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google API configuration - REPLACE THESE WITH YOUR ACTUAL CREDENTIALS
+        const CLIENT_ID = '285438608492-n9m6pvon39qb4v4scru6chfsopeutsud.apps.googleusercontent.com';
+        const API_KEY = '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';
+        const DISCOVERY_DOC = 'https://classroom.googleapis.com/$discovery/rest?version=v1';
+        const SCOPES = 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly';
+
+        let gapi;
+        let user = null;
+        let assignments = [];
+
+        // Initialize Google API
+        window.onload = function() {
+            if (typeof window.gapi !== 'undefined') {
+                gapi.load('client:auth2', initializeGapiClient);
+            } else {
+                console.log('Google API not loaded - using demo mode');
+                // For demo purposes, show login screen
+            }
+        };
+
+        async function initializeGapiClient() {
+            try {
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    clientId: CLIENT_ID,
+                    discoveryDocs: [DISCOVERY_DOC],
+                    scope: SCOPES
+                });
+                
+                const authInstance = gapi.auth2.getAuthInstance();
+                if (authInstance.currentUser.get().isSignedIn()) {
+                    user = authInstance.currentUser.get();
+                    showMainApp();
+                    await fetchAssignments();
+                }
+            } catch (err) {
+                showError('Failed to initialize Google API: ' + err.message);
+            }
+        }
+
+        async function signIn() {
+            const signInBtn = document.getElementById('signInBtn');
+            signInBtn.innerHTML = '<i class="fas fa-sync-alt animate-spin"></i><span>Connecting...</span>';
+            
+            try {
+                if (typeof gapi === 'undefined' || !gapi.auth2) {
+                    // Demo mode - simulate login
+                    user = { 
+                        getBasicProfile: () => ({
+                            getName: () => 'Demo User',
+                            getEmail: () => 'demo@student.edu'
+                        })
+                    };
+                    showMainApp();
+                    await fetchAssignments();
+                } else {
+                    const authInstance = gapi.auth2.getAuthInstance();
+                    user = await authInstance.signIn();
+                    showMainApp();
+                    await fetchAssignments();
+                }
+            } catch (err) {
+                showLoginError('Failed to sign in: ' + err.message);
+            }
+            
+            signInBtn.innerHTML = '<i class="fas fa-user"></i><span>Sign in with Google</span>';
+        }
+
+        function signOut() {
+            if (typeof gapi !== 'undefined' && gapi.auth2) {
+                gapi.auth2.getAuthInstance().signOut();
+            }
+            user = null;
+            assignments = [];
+            showLoginScreen();
+        }
+
+        async function fetchAssignments() {
+            showLoading(true);
+            
+            try {
+                if (typeof gapi !== 'undefined' && gapi.client && gapi.client.classroom) {
+                    // Real Google Classroom API calls
+                    const coursesResponse = await gapi.client.classroom.courses.list({
+                        courseStates: ['ACTIVE']
+                    });
+                    
+                    const courses = coursesResponse.result.courses || [];
+                    const allAssignments = [];
+                    
+                    for (const course of courses) {
+                        const courseworkResponse = await gapi.client.classroom.courses.courseWork.list({
+                            courseId: course.id,
+                            courseWorkStates: ['PUBLISHED']
+                        });
+                        
+                        const courseworks = courseworkResponse.result.courseWork || [];
+                        
+                        for (const coursework of courseworks) {
+                            const submissionResponse = await gapi.client.classroom.courses.courseWork.studentSubmissions.list({
+                                courseId: course.id,
+                                courseWorkId: coursework.id,
+                                userId: 'me'
+                            });
+                            
+                            const submission = submissionResponse.result.studentSubmissions?.[0];
+                            
+                            allAssignments.push({
+                                id: coursework.id,
+                                title: coursework.title,
+                                course: course.name,
+                                description: coursework.description || '',
+                                dueDate: coursework.dueDate ? 
+                                    `${coursework.dueDate.year}-${coursework.dueDate.month.toString().padStart(2, '0')}-${coursework.dueDate.day.toString().padStart(2, '0')}` : 
+                                    null,
+                                link: coursework.alternateLink,
+                                status: submission?.state === 'TURNED_IN' ? 'complete' : 'incomplete',
+                                points: coursework.maxPoints || 0
+                            });
+                        }
+                    }
+                    
+                    assignments = allAssignments;
+                } else {
+                    // Demo mode - load sample data
+                    assignments = [
+                        {
+                            id: 1,
+                            title: "Math Homework Chapter 5",
+                            course: "Algebra II",
+                            dueDate: "2025-06-02",
+                            status: "incomplete",
+                            link: "https://classroom.google.com/u/0/c/example1",
+                            description: "Complete exercises 1-20 on page 145",
+                            points: 25
+                        },
+                        {
+                            id: 2,
+                            title: "Essay: Climate Change Effects",
+                            course: "Environmental Science",
+                            dueDate: "2025-06-03",
+                            status: "incomplete",
+                            link: "https://classroom.google.com/u/0/c/example2",
+                            description: "Write a 500-word essay on local climate impacts",
+                            points: 50
+                        },
+                        {
+                            id: 3,
+                            title: "Lab Report: Chemical Reactions",
+                            course: "Chemistry",
+                            dueDate: "2025-06-01",
+                            status: "complete",
+                            link: "https://classroom.google.com/u/0/c/example3",
+                            description: "Document findings from yesterday's lab experiment",
+                            points: 30
+                        },
+                        {
+                            id: 4,
+                            title: "Reading Quiz: Chapter 12",
+                            course: "History",
+                            dueDate: "2025-06-04",
+                            status: "incomplete",
+                            link: "https://classroom.google.com/u/0/c/example4",
+                            description: "Quiz covering WWII timeline and key events",
+                            points: 20
+                        }
+                    ];
+                }
+                
+                renderAssignments();
+            } catch (err) {
+                showError('Failed to fetch assignments: ' + err.message);
+            }
+            
+            showLoading(false);
+        }
+
+        function toggleStatus(id) {
+            assignments = assignments.map(assignment =>
+                assignment.id === id
+                    ? { ...assignment, status: assignment.status === 'complete' ? 'incomplete' : 'complete' }
+                    : assignment
+            );
+            renderAssignments();
+        }
+
+        function getDaysUntilDue(dueDate) {
+            if (!dueDate) return null;
+            const today = new Date();
+            const due = new Date(dueDate);
+            const diffTime = due - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        function getUrgencyColor(daysUntilDue) {
+            if (daysUntilDue === null) return 'text-gray-600 bg-gray-50';
+            if (daysUntilDue < 0) return 'text-red-600 bg-red-50';
+            if (daysUntilDue === 0) return 'text-orange-600 bg-orange-50';
+            if (daysUntilDue === 1) return 'text-yellow-600 bg-yellow-50';
+            return 'text-blue-600 bg-blue-50';
+        }
+
+        function renderAssignments() {
+            const incompleteAssignments = assignments.filter(a => a.status === 'incomplete');
+            const completeAssignments = assignments.filter(a => a.status === 'complete');
+
+            // Update stats
+            document.getElementById('incompleteCount').textContent = incompleteAssignments.length;
+            document.getElementById('completeCount').textContent = completeAssignments.length;
+            document.getElementById('totalCount').textContent = assignments.length;
+            document.getElementById('incompleteHeader').textContent = incompleteAssignments.length;
+            document.getElementById('completedHeader').textContent = completeAssignments.length;
+
+            // Render incomplete assignments
+            const incompleteList = document.getElementById('incompleteList');
+            if (incompleteAssignments.length === 0) {
+                incompleteList.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                        <p class="text-xl text-gray-600">All caught up! 🎉</p>
+                    </div>
+                `;
+            } else {
+                incompleteList.innerHTML = incompleteAssignments
+                    .sort((a, b) => {
+                        const dateA = a.dueDate ? new Date(a.dueDate) : new Date('9999-12-31');
+                        const dateB = b.dueDate ? new Date(b.dueDate) : new Date('9999-12-31');
+                        return dateA - dateB;
+                    })
+                    .map(assignment => {
+                        const daysUntilDue = getDaysUntilDue(assignment.dueDate);
+                        const urgencyColor = getUrgencyColor(daysUntilDue);
+                        
+                        return `
+                            <div class="border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <h3 class="text-lg font-semibold text-gray-800">${assignment.title}</h3>
+                                            ${daysUntilDue !== null ? `
+                                                <span class="px-2 py-1 rounded-full text-xs font-medium ${urgencyColor}">
+                                                    ${daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} days overdue` :
+                                                      daysUntilDue === 0 ? 'Due today' :
+                                                      daysUntilDue === 1 ? 'Due tomorrow' :
+                                                      `Due in ${daysUntilDue} days`}
+                                                </span>
+                                            ` : ''}
+                                            ${assignment.points > 0 ? `
+                                                <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                                    ${assignment.points} pts
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                        <p class="text-blue-600 font-medium mb-1">${assignment.course}</p>
+                                        ${assignment.dueDate ? `<p class="text-gray-600 text-sm mb-2">Due: ${new Date(assignment.dueDate).toLocaleDateString()}</p>` : ''}
+                                        ${assignment.description ? `<p class="text-gray-700 text-sm">${assignment.description}</p>` : ''}
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <a href="${assignment.link}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                            <span>Open</span>
+                                            <i class="fas fa-external-link-alt text-sm"></i>
+                                        </a>
+                                        <button onclick="toggleStatus(${assignment.id})" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Done</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+            }
+
+            // Render completed assignments
+            if (completeAssignments.length > 0) {
+                document.getElementById('completedSection').classList.remove('hidden');
+                document.getElementById('completedList').innerHTML = completeAssignments.map(assignment => `
+                    <div class="border border-gray-200 rounded-lg p-3 mb-3 bg-green-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${assignment.title}</h3>
+                                <p class="text-blue-600 text-sm">${assignment.course}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${assignment.points > 0 ? `
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                        ${assignment.points} pts
+                                    </span>
+                                ` : ''}
+                                <button onclick="toggleStatus(${assignment.id})" class="text-gray-500 hover:text-orange-600 transition-colors">
+                                    <i class="fas fa-clock"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('completedSection').classList.add('hidden');
+            }
+        }
+
+        function showAddForm() {
+            document.getElementById('addForm').classList.remove('hidden');
+        }
+
+        function hideAddForm() {
+            document.getElementById('addForm').classList.add('hidden');
+            // Clear form
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newCourse').value = '';
+            document.getElementById('newDueDate').value = '';
+            document.getElementById('newLink').value = '';
+            document.getElementById('newDescription').value = '';
+        }
+
+        function addAssignment() {
+            const title = document.getElementById('newTitle').value;
+            const course = document.getElementById('newCourse').value;
+            const dueDate = document.getElementById('newDueDate').value;
+            const link = document.getElementById('newLink').value || '#';
+            const description = document.getElementById('newDescription').value;
+
+            if (title && course && dueDate) {
+                assignments.push({
+                    id: Date.now(),
+                    title,
+                    course,
+                    dueDate,
+                    link,
+                    description,
+                    status: 'incomplete',
+                    points: 0
+                });
+                renderAssignments();
+                hideAddForm();
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            if (user && user.getBasicProfile) {
+                document.getElementById('userName').textContent = user.getBasicProfile().getName();
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showLoading(show) {
+            if (show) {
+                document.getElementById('loadingDiv').classList.remove('hidden');
+                document.getElementById('refreshBtn').innerHTML = '<i class="fas fa-sync-alt animate-spin"></i><span>Refresh</span>';
+            } else {
+                document.getElementById('loadingDiv').classList.add('hidden');
+                document.getElementById('refreshBtn').innerHTML = '<i class="fas fa-sync-alt"></i><span>Refresh</span>';
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorDiv').classList.remove('hidden');
+        }
+
+        function showLoginError(message) {
+            document.getElementById('loginError').textContent = message;
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
